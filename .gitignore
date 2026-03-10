@@ -1,0 +1,7 @@
+node_modules/
+.env
+web-app/node_modules/
+*.pdf
+web-app/.env
+.DS_Store
+tailored-resume.txt

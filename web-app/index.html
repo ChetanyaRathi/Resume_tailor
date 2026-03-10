@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume Tailor — Powered by Gemini 2.5 Pro</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✦</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- CDN Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+  <style>
+    /* ===== CSS RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f0f4f8;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+
+    /* ===== HEADER ===== */
+    header {
+      background: #1a1a2e;
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    header .brand h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    header .brand p {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    /* ===== MAIN LAYOUT ===== */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    @media (max-width: 900px) {
+      .main-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ===== CARDS ===== */
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    .step-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #1e293b;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .step-badge {
+      background: #1a1a2e;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 700;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ===== DROP ZONE ===== */
+    #dropZone {
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: #f8fafc;
+      margin-bottom: 24px;
+    }
+
+    #dropZone:hover, #dropZone.dragover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+
+    #dropZone .drop-icon {
+      font-size: 2.5rem;
+      display: block;
+      margin-bottom: 12px;
+    }
+
+    #dropZone .drop-main {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #334155;
+    }
+
+    #dropZone .drop-sub {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    #fileInput { display: none; }
+
+    #fileStatus {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #166534;
+    }
+
+    #fileStatus .check { font-size: 1.1rem; }
+
+    /* ===== TEXTAREA ===== */
+    .textarea-wrapper { position: relative; }
+
+    textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      resize: vertical;
+      outline: none;
+      color: #1e293b;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+
+    .char-counter {
+      text-align: right;
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+
+    /* ===== TAILOR BUTTON ===== */
+    #tailorBtn {
+      width: 100%;
+      padding: 16px;
+      margin-top: 20px;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+    }
+
+    #tailorBtn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+    }
+
+    #tailorBtn:disabled {
+      opacity: 0.75;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ===== SPINNER ===== */
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===== ERROR BOX ===== */
+    #errorBox {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 16px;
+      font-size: 0.875rem;
+      color: #991b1b;
+      font-weight: 500;
+    }
+
+    /* ===== OUTPUT COLUMN ===== */
+    .output-column { display: flex; flex-direction: column; gap: 16px; }
+
+    .output-placeholder {
+      background: white;
+      border-radius: 16px;
+      padding: 60px 28px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+      text-align: center;
+      color: #94a3b8;
+    }
+
+    .output-placeholder .ph-icon { font-size: 3rem; margin-bottom: 16px; }
+    .output-placeholder p { font-size: 0.95rem; }
+
+    /* ===== OUTPUT ACTIONS ===== */
+    .output-actions {
+      display: none;
+      gap: 10px;
+    }
+
+    .btn-action {
+      padding: 10px 18px;
+      border-radius: 9px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .btn-save-pdf {
+      background: #f0fdf4;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .btn-save-pdf:hover { background: #dcfce7; }
+
+    .btn-copy {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+    }
+
+    .btn-copy:hover { background: #e2e8f0; }
+
+    /* ===== RESUME PREVIEW ===== */
+    #resumePreview {
+      display: none;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+
+    .resume-doc {
+      padding: 40px;
+      max-width: 800px;
+      margin: 0 auto;
+      font-family: 'Times New Roman', Times, serif;
+    }
+
+    /* ===== RESUME CONTENT STYLES ===== */
+    .resume-doc h1.candidate-name {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      letter-spacing: 2px;
+      color: #0f0f0f;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .resume-doc p.contact {
+      text-align: center;
+      font-size: 12px;
+      color: #555;
+      margin-bottom: 12px;
+    }
+
+    .resume-doc h2.section-header {
+      font-size: 13px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #0f0f0f;
+      margin-top: 16px;
+      margin-bottom: 4px;
+      padding-bottom: 4px;
+      border-bottom: 1.5px solid #0f0f0f;
+    }
+
+    .resume-doc .entry-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    .resume-doc .entry-row .entry-name { font-weight: bold; }
+    .resume-doc .entry-row .entry-date { color: #444; font-style: italic; }
+
+    .resume-doc ul.bullets {
+      margin: 4px 0 0 16px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .resume-doc ul.bullets li {
+      font-size: 12px;
+      line-height: 1.5;
+      margin-bottom: 3px;
+      padding-left: 4px;
+    }
+
+    .resume-doc ul.bullets li::before {
+      content: '• ';
+      font-size: 12px;
+    }
+
+    .resume-doc p.body-line {
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 3px;
+      color: #1a1a1a;
+    }
+
+  </style>
+</head>
+<body>
+
+  <header class="no-print">
+    <div class="brand">
+      <h1>✦ Resume Tailor</h1>
+      <p>Powered by Gemini 2.5 Pro</p>
+    </div>
+    <div style="color: #64748b; font-size: 0.85rem; display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 1.2rem;">🤖</span> AI-Powered ATS Optimizer
+    </div>
+  </header>
+
+  <div class="main-layout">
+
+    <!-- LEFT COLUMN: Input -->
+    <div class="left-col">
+      <div class="card">
+
+        <!-- Step 1: Upload -->
+        <div class="step-title">
+          <div class="step-badge">1</div>
+          Upload Your Resume
+        </div>
+
+        <div id="dropZone" class="no-print">
+          <span class="drop-icon">📄</span>
+          <p class="drop-main">Drag & drop or <strong>click to browse</strong></p>
+          <p class="drop-sub">Accepts .pdf and .docx files</p>
+          <input type="file" id="fileInput" accept=".pdf,.docx">
+        </div>
+
+        <div id="fileStatus">
+          <span class="check">✅</span>
+          <span id="fileNameDisplay">No file selected</span>
+        </div>
+
+        <!-- Step 2: Job Description -->
+        <div class="step-title">
+          <div class="step-badge">2</div>
+          Paste Job Description
+        </div>
+
+        <div class="textarea-wrapper">
+          <textarea id="jobDescription" class="no-print" placeholder="Paste the job description here..."></textarea>
+          <div class="char-counter no-print"><span id="charCount">0</span> characters</div>
+        </div>
+
+        <!-- Step 3: Tailor -->
+        <button id="tailorBtn" class="no-print">
+          <span id="tailorBtnText">✦ Tailor My Resume</span>
+        </button>
+
+        <!-- Error Box -->
+        <div id="errorBox"></div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Output -->
+    <div class="right-col output-column">
+
+      <!-- Action Buttons -->
+      <div class="output-actions no-print" id="outputActions">
+        <button class="btn-action btn-save-pdf no-print" id="downloadPdfBtn">📅 Download PDF</button>
+        <button class="btn-action btn-copy no-print" id="copyBtn">📋 Copy Plain Text</button>
+      </div>
+
+      <!-- Placeholder -->
+      <div class="output-placeholder" id="outputPlaceholder">
+        <div class="ph-icon">📝</div>
+        <p>Your tailored resume will appear here once you click <strong>Tailor My Resume</strong>.</p>
+      </div>
+
+      <!-- Resume Preview -->
+      <div id="resume-output" style="display:none;">
+        <div class="resume-doc" id="resumeDoc"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ===========================
+    //   PDF.js WORKER SETUP
+    // ===========================
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    // ===========================
+    //   DOM REFS
+    // ===========================
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileStatus = document.getElementById('fileStatus');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    const jobDescInput = document.getElementById('jobDescription');
+    const charCount = document.getElementById('charCount');
+    const tailorBtn = document.getElementById('tailorBtn');
+    const tailorBtnText = document.getElementById('tailorBtnText');
+    const errorBox = document.getElementById('errorBox');
+    const outputPlaceholder = document.getElementById('outputPlaceholder');
+    const resumePreview = document.getElementById('resumePreview');
+    const resumeDoc = document.getElementById('resumeDoc');
+    const outputActions = document.getElementById('outputActions');
+    const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const resumeOutput = document.getElementById('resume-output');
+
+    let currentFile = null;
+    let plainTextResult = '';
+    let bulletsResult = null;
+    let errorTimer = null;
+
+    // ===========================
+    //   DRAG & DROP
+    // ===========================
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => {
+      dropZone.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); });
+    });
+    ['dragenter', 'dragover'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.add('dragover')));
+    ['dragleave', 'drop'].forEach(e => dropZone.addEventListener(e, () => dropZone.classList.remove('dragover')));
+
+    dropZone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
+    fileInput.addEventListener('change', function() { handleFiles(this.files); });
+
+    function handleFiles(files) {
+      if (!files.length) return;
+      const file = files[0];
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext !== 'pdf' && ext !== 'docx') {
+        showError('Please upload a .pdf or .docx file only.');
+        return;
+      }
+      currentFile = file;
+      fileNameDisplay.textContent = file.name;
+      fileStatus.style.display = 'flex';
+    }
+
+    // ===========================
+    //   CHARACTER COUNTER
+    // ===========================
+    jobDescInput.addEventListener('input', () => {
+      charCount.textContent = jobDescInput.value.length.toLocaleString();
+    });
+
+    // ===========================
+    //   FILE PARSING
+    // ===========================
+    async function extractTextFromFile(file) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext === 'pdf') {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let text = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map(item => item.str).join(' ') + '\n';
+        }
+        return text;
+      } else if (ext === 'docx') {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+        return result.value;
+      }
+      return '';
+    }
+
+    // ===========================
+    //   ERROR DISPLAY
+    // ===========================
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.style.display = 'block';
+      if (errorTimer) clearTimeout(errorTimer);
+      errorTimer = setTimeout(() => { errorBox.style.display = 'none'; }, 5000);
+    }
+
+    // ===========================
+    //   TAILOR BUTTON
+    // ===========================
+    tailorBtn.addEventListener('click', async () => {
+      if (!currentFile) { showError('Please upload your resume first.'); return; }
+      const jobDesc = jobDescInput.value.trim();
+      if (!jobDesc) { showError('Please paste a job description.'); return; }
+
+      try {
+        tailorBtn.disabled = true;
+        tailorBtnText.innerHTML = '<div class="spinner"></div> Analyzing job description...';
+
+        // Parse file
+        const resumeText = await extractTextFromFile(currentFile);
+        if (!resumeText.trim()) throw new Error('Could not extract text from the uploaded file.');
+
+        // Brief visual pause
+        await new Promise(r => setTimeout(r, 1000));
+        tailorBtnText.innerHTML = '<div class="spinner"></div> Tailoring resume with Gemini 2.5 Pro...';
+
+        // Call server
+        const response = await fetch('/api/tailor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resumeText, jobDescription: jobDesc })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Server error during tailoring.');
+
+        // Show result
+        plainTextResult = data.tailoredResume;
+        bulletsResult = data.bullets || null;
+        resumeDoc.innerHTML = parseResumeToHTML(plainTextResult);
+        outputPlaceholder.style.display = 'none';
+        resumeOutput.style.display = 'block';
+        outputActions.style.display = 'flex';
+        resumeOutput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        // Auto-trigger PDF download using JSON bullets
+        await triggerPdfDownload(bulletsResult);
+
+      } catch (err) {
+        showError(err.message || 'An unexpected error occurred.');
+      } finally {
+        tailorBtn.disabled = false;
+        tailorBtnText.textContent = '✦ Tailor My Resume';
+      }
+    });
+
+    // ===========================
+    //   PDF DOWNLOAD via Puppeteer
+    // ===========================
+    async function triggerPdfDownload(bullets) {
+      if (!bullets) { showError('No bullets available. Please tailor first.'); return; }
+      try {
+        downloadPdfBtn.disabled = true;
+        downloadPdfBtn.textContent = '⏳ Generating PDF...';
+        const pdfResponse = await fetch('/api/generate-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bullets)
+        });
+        if (!pdfResponse.ok) {
+          const err = await pdfResponse.json().catch(() => ({}));
+          throw new Error(err.error || 'PDF generation failed');
+        }
+        const pdfBlob = await pdfResponse.blob();
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Tailored_Resume.pdf';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        showError('PDF Error: ' + err.message);
+      } finally {
+        downloadPdfBtn.disabled = false;
+        downloadPdfBtn.innerHTML = '📅 Download PDF';
+      }
+    }
+
+    downloadPdfBtn.addEventListener('click', () => triggerPdfDownload(bulletsResult));
+
+    // ===========================
+    //   RESUME PARSER
+    // ===========================
+    function parseResumeToHTML(text) {
+      const lines = text.split('\n');
+      let html = '';
+      let currentUl = false;
+      let firstLine = true;
+      let secondLine = false;
+      let nameFound = false;
+      let contactFound = false;
+
+      const SECTION_HEADERS = /^(EDUCATION|TECHNICAL SKILLS|PROFESSIONAL EXPERIENCE|PROJECTS|CERTIFICATIONS|AWARDS|PUBLICATIONS|SUMMARY|SKILLS|EXPERIENCE|WORK EXPERIENCE|RESEARCH)$/i;
+      const DATE_RE = /\b(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/;
+      const ALL_CAPS_RE = /^[A-Z][A-Z\s&\/\-–]+$/;
+      const CONTACT_RE = /\b(@|github|linkedin|portfolio|http|www|\+\d|\(\d{3}\)|\d{3}-\d{3}|email|gmail|\.edu|\.com)\b/i;
+      const BULLET_RE = /^[•\-–*]\s*/;
+
+      function closeBulletList() {
+        if (currentUl) { html += '</ul>'; currentUl = false; }
+      }
+
+      for (let rawLine of lines) {
+        const line = rawLine.trim();
+        if (!line) continue;
+
+        // NAME — first non-empty line
+        if (!nameFound) {
+          closeBulletList();
+          html += `<h1 class="candidate-name">${escapeHtml(line)}</h1>`;
+          nameFound = true;
+          secondLine = true;
+          continue;
+        }
+
+        // CONTACT — second non-empty line or contains contact signals
+        if (secondLine || (!contactFound && CONTACT_RE.test(line))) {
+          closeBulletList();
+          html += `<p class="contact">${escapeHtml(line)}</p>`;
+          contactFound = true;
+          secondLine = false;
+          continue;
+        }
+
+        // SECTION HEADERS — all caps or matches known headers
+        if (ALL_CAPS_RE.test(line) || SECTION_HEADERS.test(line)) {
+          closeBulletList();
+          html += `<div class="resume-section"><h2 class="section-header">${escapeHtml(line)}</h2>`;
+          continue;
+        }
+
+        // BULLET POINTS
+        if (BULLET_RE.test(line)) {
+          if (!currentUl) { html += '<ul class="bullets">'; currentUl = true; }
+          const content = line.replace(BULLET_RE, '');
+          html += `<li>${escapeHtml(content)}</li>`;
+          continue;
+        }
+
+        // ENTRY ROWS — lines with dates (company/job title lines)
+        if (DATE_RE.test(line)) {
+          closeBulletList();
+          // Try to split on tab, multiple spaces, or last occurrence before date
+          const dateMatch = line.match(DATE_RE);
+          const dateStr = line.slice(line.lastIndexOf(dateMatch[0]));
+          const nameStr = line.slice(0, line.lastIndexOf(dateMatch[0])).trim();
+          if (nameStr) {
+            html += `<div class="entry-row"><span class="entry-name">${escapeHtml(nameStr)}</span><span class="entry-date">${escapeHtml(dateStr)}</span></div>`;
+          } else {
+            html += `<div class="entry-row"><span class="entry-date">${escapeHtml(line)}</span></div>`;
+          }
+          continue;
+        }
+
+        // DEFAULT — body paragraph
+        closeBulletList();
+        html += `<p class="body-line">${escapeHtml(line)}</p>`;
+      }
+
+      closeBulletList();
+      html += '</div>'; // close last resume-section
+      return html;
+    }
+
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // ===========================
+    //   COPY PLAIN TEXT
+    // ===========================
+    copyBtn.addEventListener('click', async () => {
+      if (!plainTextResult) return;
+      try {
+        await navigator.clipboard.writeText(plainTextResult);
+        copyBtn.textContent = '✅ Copied!';
+        setTimeout(() => { copyBtn.innerHTML = '📋 Copy Plain Text'; }, 2000);
+      } catch (e) {
+        showError('Could not copy to clipboard. Please copy manually.');
+      }
+    });
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Resume Tailor",
+  "version": "1.0",
+  "description": "Tailor your resume to match a specific job description using the Gemini API.",
+  "permissions": [
+    "storage"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Resume Tailor"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
